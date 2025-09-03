@@ -43,6 +43,17 @@ jobs:
       - name: Clean old Docker credentials
         run: rm -f ~/.docker/config.json || true
 
+      - name: Debug Docker Hub secret
+        run: |
+          if [ -z "${DOCKERHUB_TOKEN}" ]; then
+            echo "Error: DOCKERHUB_TOKEN secret is empty!"
+            exit 1
+          else
+            echo "DOCKERHUB_TOKEN secret exists."
+          fi
+        env:
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
