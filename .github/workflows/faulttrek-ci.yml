@@ -1,6 +1,3 @@
-# This workflow builds, tests, and pushes the FaultTrek Docker image to Docker Hub.
-# The image is pushed only on a successful merge to the 'main' branch.
-
 name: FaultTrek CI/CD
 
 on:
@@ -9,13 +6,12 @@ on:
       - main
   pull_request:
 
-# Define environment variables to avoid repetition and hardcoding.
 env:
   DOCKERHUB_USERNAME: ramshenoy7
-  # The DOCKERHUB_TOKEN must be stored as a secret in your repository settings.
+  IMAGE_NAME: ramshenoy7/faulttrek
 
 jobs:
-  build-and-push: # Renamed job for clarity
+  build-and-test:
     runs-on: ubuntu-latest
 
     steps:
@@ -25,34 +21,26 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # This step generates metadata for the Docker image, like tags.
-      - name: Docker meta
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          # Construct the image name using the public username from the env block
-          images: ${{ env.DOCKERHUB_USERNAME }}/faulttrek
+      - name: Build FaultTrek image for testing
+        run: docker build -t ${{ env.IMAGE_NAME }}:latest ./docker
+
+      - name: Start services for testing
+        run: docker-compose -f docker-compose.ci.yml up -d
+
+      - name: Run FaultTrek test suite
+        run: docker-compose -f docker-compose.ci.yml exec -T faulttrek /bin/sh -c "./run_all_profiles.sh"
+
+      - name: Stop services after testing
+        if: always()
+        run: docker-compose -f docker-compose.ci.yml down
 
       - name: Log in to Docker Hub
-        # This step only runs on a push to the main branch to avoid unnecessary logins.
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: docker/login-action@v3
         with:
           username: ${{ env.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }} # The token remains a secret
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push FaultTrek Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./docker/Dockerfile
-          # Only push the image when the event is a push to the main branch.
-          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-
-      - name: Run Python tests (Placeholder)
-        run: |
-          echo "TODO: Implement tests that run against the built Docker container."
-          # Example: docker run --rm ${{ env.DOCKERHUB_USERNAME }}/faulttrek:${{ steps.meta.outputs.version }} pytest
-
+      - name: Push image to Docker Hub
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: docker push ${{ env.IMAGE_NAME }}:latest

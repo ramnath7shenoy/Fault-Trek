@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  # This is your main FaultTrek application
+  faulttrek:
+    # In the CI pipeline, we build the image first and give it this name
+    image: ramshenoy7/faulttrek:latest
+    container_name: faulttrek
+    privileged: true
+    volumes:
+      - ./profiles:/app/profiles
+      - /var/run/docker.sock:/var/run/docker.sock
+      # We mount your test script so we can run it inside the container
+      - ./run_all_profiles.sh:/app/run_all_profiles.sh
+
+  # This is the "crash test dummy" application
+  test-app:
+    build:
+      context: ./test-app # Tells Docker to find the Dockerfile in the test-app folder
+    container_name: test-app
+    ports:
+      - "5000:5000"
