@@ -34,12 +34,20 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ramshenoy7
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Build FaultTrek Docker image
-        run: docker build -t faulttrek ./docker
+        run: docker build -t ramshenoy7/faulttrek:latest ./docker
 
       - name: Run all FaultTrek profiles
         run: |
