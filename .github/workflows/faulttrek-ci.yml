@@ -22,8 +22,11 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build FaultTrek image for testing
-        # This is the corrected command
         run: docker build -t ${{ env.IMAGE_NAME }}:latest -f ./docker/Dockerfile .
+
+      - name: Make scripts executable
+        # This is the new step that fixes the 'Permission denied' error
+        run: chmod +x run_all_profiles.sh
 
       - name: Start services for testing
         run: docker compose -f docker-compose.ci.yml up -d
