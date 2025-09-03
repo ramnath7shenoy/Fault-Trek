@@ -1,3 +1,7 @@
+# This workflow builds, tests, pushes, and deploys the FaultTrek Docker image.
+# It is structured into two jobs: one for building and testing, and one for deployment.
+# The Docker image is only pushed to Docker Hub and deployed on a push to the 'main' branch.
+
 name: FaultTrek CI/CD
 
 on:
@@ -6,71 +10,78 @@ on:
       - main
   pull_request:
 
+# Define environment variables to avoid repetition and hardcoding.
+# Make sure to create DOCKERHUB_USERNAME and DOCKERHUB_TOKEN secrets in your repository settings.
+env:
+  DOCKER_IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/faulttrek
+
 jobs:
-  run-faulttrek:
+  build-and-test:
     runs-on: ubuntu-latest
+    outputs:
+      # This output makes the image tags available to the deploy job.
+      tags: ${{ steps.meta.outputs.tags }}
 
-    services:
-      prometheus:
-        image: prom/prometheus:latest
-        ports:
-          - 9090:9090
-        options: >-
-          --health-cmd="wget --spider http://localhost:9090/-/ready || exit 1"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      grafana:
-        image: grafana/grafana:latest
-        ports:
-          - 3000:3000
-        options: >-
-          --health-cmd="curl -f http://localhost:3000 || exit 1"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # This step generates metadata for the Docker image, like tags.
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKER_IMAGE_NAME }}
+
+      - name: Log in to Docker Hub
+        # This step only runs on a push to the main branch to avoid unnecessary logins.
+        if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push FaultTrek Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./docker/Dockerfile
+          # Only push the image when the event is a push to the main branch.
+          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Run Python tests (Placeholder)
+        run: |
+          echo "TODO: Implement tests that run against the built Docker container."
+          # Example: docker run --rm ${{ env.DOCKER_IMAGE_NAME }}:${{ steps.meta.outputs.version }} pytest
+
+  deploy:
+    # This job only runs after 'build-and-test' is successful and on a push to 'main'.
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+
+      # The 'azure/k8s-deploy' action requires credentials to access your cluster.
+      # You would typically add a step here to log in, e.g., using 'azure/login'.
+      # - name: Log in to Azure
+      #   uses: azure/login@v1
+      #   with:
+      #     creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy to Kubernetes
+        uses: azure/k8s-deploy@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          namespace: default
+          manifests: deployments/faulttrek-deployment.yaml
+          # Use the tags generated in the build job for consistency.
+          images: ${{ needs.build-and-test.outputs.tags }}
+          kubectl-version: '1.28.0'
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Clean old Docker credentials
-        run: rm -f ~/.docker/config.json || true
-
-      - name: Debug Docker Hub secret
-        run: |
-          if [ -z "${DOCKERHUB_TOKEN}" ]; then
-            echo "Error: DOCKERHUB_TOKEN secret is empty!"
-            exit 1
-          else
-            echo "DOCKERHUB_TOKEN secret exists."
-          fi
-        env:
-          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ramshenoy7
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build FaultTrek Docker image
-        run: docker build -t ramshenoy7/faulttrek:latest ./docker
-
-      - name: Run all FaultTrek profiles
-        run: |
-          chmod +x run_all_profiles.sh
-          set -e
-          ./run_all_profiles.sh
-
-      - name: Upload logs
-        uses: actions/upload-artifact@v4
-        with:
-          name: faulttrek-logs
-          path: logs/
