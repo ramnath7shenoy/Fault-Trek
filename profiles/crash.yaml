@@ -1,0 +1,3 @@
+experiment:
+  fault: kill
+  target: notepad.exe

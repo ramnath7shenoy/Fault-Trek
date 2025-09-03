@@ -1,0 +1,3 @@
+experiment:
+  fault: cpu
+  duration: 5

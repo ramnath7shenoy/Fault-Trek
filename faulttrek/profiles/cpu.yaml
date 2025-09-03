@@ -1,0 +1,4 @@
+experiment:
+  fault: cpu
+  duration: 5
+  intensity: 2

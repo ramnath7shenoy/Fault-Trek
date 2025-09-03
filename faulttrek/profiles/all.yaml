@@ -1,0 +1,15 @@
+experiments:
+  - fault: cpu
+    duration: 5
+    intensity: 2
+
+  - fault: memory
+    duration: 5
+    intensity: 50
+
+  - fault: network
+    duration: 5
+    target: "http://example.com"
+
+  - fault: kill
+    target: "python3"

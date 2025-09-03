@@ -1,0 +1,4 @@
+experiment:
+  fault: network
+  target: https://httpbin.org/get
+  duration: 5

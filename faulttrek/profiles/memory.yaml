@@ -1,0 +1,4 @@
+experiment:
+  fault: memory
+  duration: 5
+  intensity: 2

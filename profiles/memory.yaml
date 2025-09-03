@@ -1,0 +1,3 @@
+experiment:
+  fault: memory
+  duration: 5
