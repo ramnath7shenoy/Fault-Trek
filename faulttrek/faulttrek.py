@@ -7,11 +7,11 @@ import argparse
 from flask import Flask, request, jsonify
 from prometheus_client import start_http_server, Gauge
 
-# Import fault modules
-from modules.cpu_stress import cpu_stress
-from modules.memory_stress import memory_stress
-from modules.network_stress import network_delay
-from modules.kill_process import kill_process
+# Relative imports from the faulttrek package
+from .modules.cpu_stress import cpu_stress
+from .modules.memory_stress import memory_stress
+from .modules.network_stress import network_delay
+from .modules.kill_process import kill_process
 
 # Flask app
 app = Flask(__name__)

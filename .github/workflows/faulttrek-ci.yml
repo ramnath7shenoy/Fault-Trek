@@ -1,0 +1,53 @@
+name: FaultTrek CI/CD
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  run-faulttrek:
+    runs-on: ubuntu-latest
+
+    services:
+      prometheus:
+        image: prom/prometheus:latest
+        ports:
+          - 9090:9090
+        options: >-
+          --health-cmd="wget --spider http://localhost:9090/-/ready || exit 1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+      grafana:
+        image: grafana/grafana:latest
+        ports:
+          - 3000:3000
+        options: >-
+          --health-cmd="curl -f http://localhost:3000 || exit 1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build FaultTrek Docker image
+        run: docker build -t faulttrek ./docker
+
+      - name: Run all FaultTrek profiles
+        run: |
+          chmod +x run_all_profiles.sh
+          ./run_all_profiles.sh
+
+      - name: Upload logs
+        uses: actions/upload-artifact@v3
+        with:
+          name: faulttrek-logs
+          path: logs/

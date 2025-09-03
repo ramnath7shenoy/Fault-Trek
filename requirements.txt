@@ -1,0 +1,5 @@
+flask
+pyyaml
+psutil
+requests
+prometheus_client

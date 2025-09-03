@@ -1,9 +1,9 @@
 $profiles = @(
-    "profiles/cpu.yaml",
-    "profiles/memory.yaml",
-    "profiles/network.yaml",
-    "profiles/crash.yaml",
-    "profiles/latency.yaml"
+    "faulttrek/profiles/cpu.yaml",
+    "faulttrek/profiles/memory.yaml",
+    "faulttrek/profiles/network.yaml",
+    "faulttrek/profiles/crash.yaml",
+    "faulttrek/profiles/latency.yaml"
 )
 
 foreach ($profile in $profiles) {
@@ -11,7 +11,8 @@ foreach ($profile in $profiles) {
     Write-Host "Running FaultTrek profile: $profile"
     Write-Host "=============================================`n"
 
-    docker run --rm faulttrek python faulttrek.py $profile
+    # Use sh -c to force the container to run Python module correctly
+    docker run --rm faulttrek sh -c "python -m faulttrek.faulttrek $profile"
 
     Write-Host "`n=============================================`n"
     Start-Sleep -Seconds 2  # small pause between experiments

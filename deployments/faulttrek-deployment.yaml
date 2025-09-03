@@ -1,3 +1,25 @@
+# Namespace definition
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: faulttrek
+
+---
+
+# ConfigMap for profiles (optional, but allows dynamic updates without rebuilding image)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: faulttrek-profiles
+  namespace: faulttrek
+data:
+  # Example: you can add small profile configs here, or mount as volume from local
+  # profile1.yaml: |
+  #   key: value
+
+---
+
+# Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -15,11 +37,16 @@ spec:
     spec:
       containers:
         - name: faulttrek
-          image: faulttrek:latest
+          image: faulttrek-faulttrek:latest   # locally built image
           imagePullPolicy: Never
           ports:
             - containerPort: 8080   # Flask HTTP API
             - containerPort: 8000   # Prometheus metrics
+          volumeMounts:
+            - name: profiles-volume
+              mountPath: /app/faulttrek/profiles
+            - name: modules-volume
+              mountPath: /app/faulttrek/modules
           resources:
             requests:
               cpu: "250m"
@@ -43,8 +70,19 @@ spec:
             periodSeconds: 5
             timeoutSeconds: 2
             failureThreshold: 3
+      volumes:
+        - name: profiles-volume
+          hostPath:
+            path: /full/path/to/faulttrek/faulttrek/profiles   # change this to your host path
+            type: Directory
+        - name: modules-volume
+          hostPath:
+            path: /full/path/to/faulttrek/faulttrek/modules
+            type: Directory
 
 ---
+
+# Service
 apiVersion: v1
 kind: Service
 metadata:
