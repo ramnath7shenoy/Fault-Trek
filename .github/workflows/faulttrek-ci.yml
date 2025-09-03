@@ -22,19 +22,17 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build FaultTrek image for testing
-        run: docker build -t ${{ env.IMAGE_NAME }}:latest ./docker
+        # This is the corrected command
+        run: docker build -t ${{ env.IMAGE_NAME }}:latest -f ./docker/Dockerfile .
 
       - name: Start services for testing
-        # Use the modern 'docker compose' command
         run: docker compose -f docker-compose.ci.yml up -d
 
       - name: Run FaultTrek test suite
-        # Use the modern 'docker compose' command
         run: docker compose -f docker-compose.ci.yml exec -T faulttrek /bin/sh -c "./run_all_profiles.sh"
 
       - name: Stop services after testing
         if: always()
-        # Use the modern 'docker compose' command
         run: docker compose -f docker-compose.ci.yml down
 
       - name: Log in to Docker Hub
