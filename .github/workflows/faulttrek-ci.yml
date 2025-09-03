@@ -1,6 +1,5 @@
-# This workflow builds, tests, pushes, and deploys the FaultTrek Docker image.
-# It is structured into two jobs: one for building and testing, and one for deployment.
-# The Docker image is only pushed to Docker Hub and deployed on a push to the 'main' branch.
+# This workflow builds, tests, and pushes the FaultTrek Docker image to Docker Hub.
+# The image is pushed only on a successful merge to the 'main' branch.
 
 name: FaultTrek CI/CD
 
@@ -11,18 +10,13 @@ on:
   pull_request:
 
 # Define environment variables to avoid repetition and hardcoding.
-# The Docker Hub username is public information; only the token is a secret.
 env:
-  # Replace 'ramshenoy7' with your actual Docker Hub username.
   DOCKERHUB_USERNAME: ramshenoy7
   # The DOCKERHUB_TOKEN must be stored as a secret in your repository settings.
 
 jobs:
-  build-and-test:
+  build-and-push: # Renamed job for clarity
     runs-on: ubuntu-latest
-    outputs:
-      # This output makes the image tags available to the deploy job.
-      tags: ${{ steps.meta.outputs.tags }}
 
     steps:
       - name: Checkout repository
@@ -61,30 +55,4 @@ jobs:
         run: |
           echo "TODO: Implement tests that run against the built Docker container."
           # Example: docker run --rm ${{ env.DOCKERHUB_USERNAME }}/faulttrek:${{ steps.meta.outputs.version }} pytest
-
-  deploy:
-    # This job only runs after 'build-and-test' is successful and on a push to 'main'.
-    runs-on: ubuntu-latest
-    needs: build-and-test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      # The 'azure/k8s-deploy' action requires credentials to access your cluster.
-      # You would typically add a step here to log in, e.g., using 'azure/login'.
-      # - name: Log in to Azure
-      #   uses: azure/login@v1
-      #   with:
-      #     creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Deploy to Kubernetes
-        uses: azure/k8s-deploy@v4
-        with:
-          namespace: default
-          manifests: deployments/faulttrek-deployment.yaml
-          # Use the tags generated in the build job for consistency.
-          images: ${{ needs.build-and-test.outputs.tags }}
-          kubectl-version: '1.28.0'
 
