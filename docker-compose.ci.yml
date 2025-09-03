@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # This is your main FaultTrek application
   faulttrek:
