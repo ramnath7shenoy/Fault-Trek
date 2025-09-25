@@ -4,4 +4,4 @@ global:
 scrape_configs:
   - job_name: 'faulttrek'
     static_configs:
-      - targets: ['faulttrek-service.faulttrek.svc.cluster.local:8000']
+      - targets: ['faulttrek:8000']  #This is for docker 
